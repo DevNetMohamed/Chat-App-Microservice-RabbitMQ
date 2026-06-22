@@ -1,0 +1,14 @@
+node_modules
+dist
+
+apps/**/node_modules
+apps/**/dist
+
+.git
+.gitignore
+.vscode
+
+npm-debug.log
+*.log
+
+build_debug*.txt

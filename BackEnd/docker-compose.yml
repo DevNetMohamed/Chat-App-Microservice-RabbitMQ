@@ -1,0 +1,156 @@
+services:
+  # ─── Infrastructure ─────────────────────────────
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: no
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - chat-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq
+    restart: no
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - chat-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Microservices ───────────────────────────────
+  api-gateway:
+    build:
+      context: .
+      # NOTE: filename is lowercase 'dockerfile' (not 'Dockerfile')
+      dockerfile: apps/api_Getaway/dockerfile
+    container_name: api-gateway
+    restart: no
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN}
+      REDIS_URI: ${REDIS_URI}
+      REDIS_TOKEN: ${REDIS_TOKEN}
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  # chat-service:
+  #   build: ./apps/chat-service
+  #   container_name: chat-service
+  #   restart: no
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     PORT: 3001
+  #     MONGO_URI: mongodb://mongodb:27017/Chat-App
+  #     REDIS_URI: ${REDIS_URI}
+  #     REDIS_TOKEN: ${REDIS_TOKEN}
+  #     RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+  #     CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+  #     CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+  #     CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   networks:
+  #     - chat-network
+  # NOTE: uncomment once apps/chat-service has real code + Dockerfile
+
+  mail-service:
+    build:
+      context: .
+      dockerfile: apps/mail-service/dockerfile
+    container_name: mail-service
+    restart: no
+    ports:
+      - "3002:3002"
+    environment:
+      PORT: 3002
+      MONGO_URI: mongodb://mongodb:27017/Chat-App
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      EMAIL_USER: ${EMAIL_USER}
+      EMAIL_PASS: ${EMAIL_PASS}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/dockerfile
+    container_name: user-service
+    restart: no
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      MONGO_URI: mongodb://mongodb:27017/Chat-App
+      RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - chat-network
+
+  # message-service:
+  #   build: ./apps/message-service
+  #   container_name: message-service
+  #   restart: no
+  #   ports:
+  #     - "3004:3004"
+  #   environment:
+  #     PORT: 3004
+  #     MONGO_URI: mongodb://mongodb:27017/Chat-App
+  #     REDIS_URI: ${REDIS_URI}
+  #     REDIS_TOKEN: ${REDIS_TOKEN}
+  #     RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+  #   depends_on:
+  #     mongodb:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   networks:
+  #     - chat-network
+  # NOTE: uncomment once apps/message-service has real code + Dockerfile
+
+volumes:
+  mongo_data:
+  rabbitmq_data:
+
+networks:
+  chat-network:
+    driver: bridge

@@ -1,0 +1,6 @@
+{
+  "watch": ["../../dist/apps/api_Getaway"],
+  "ext": "js,json",
+  "ignore": ["**/*.map"],
+  "exec": "node ../../dist/apps/api_Getaway/index.js"
+}

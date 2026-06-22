@@ -1,0 +1,162 @@
+import { User, type IUser } from "../models/User.js";
+import { RefreshToken } from "../models/RefreshToken.js";
+import { generateOtp, getOtpExpiry, isOtpExpired } from "../utils/otp.js";
+import { signAccessToken, issueRefreshToken } from "../utils/tokens.js";
+import { publishOtpEmailRequested } from "../events/otpEmail.publisher.js";
+import { AppError } from "../../../../src/index.js";
+
+interface RegisterInput {
+  email: string;
+  username: string;
+}
+
+interface LoginInput {
+  email: string;
+}
+
+interface AuthResult {
+  user: {
+    id: string;
+    email: string;
+    username: string;
+    verified: boolean;
+  };
+  accessToken: string;
+  refreshToken: string;
+}
+
+function toPublicUser(user: IUser) {
+  return {
+    id: user._id.toString(),
+    email: user.email,
+    username: user.username,
+    verified: user.verified,
+  };
+}
+
+export async function register(input: RegisterInput): Promise<AuthResult> {
+  const existing = await User.findOne({ email: input.email });
+  if (existing) {
+    throw new Error("An account with this email already exists");
+  }
+
+  const otpCode = generateOtp();
+  const otpExpiresAt = getOtpExpiry();
+
+  const user = await User.create({
+    email: input.email,
+    username: input.username,
+
+    verified: false,
+    otpCode,
+    otpExpiresAt,
+  });
+
+  // Fire-and-forget — does not block the register response.
+  await publishOtpEmailRequested({
+    email: user.email,
+    username: user.username,
+    otpCode,
+  });
+
+  const accessToken = signAccessToken(user);
+  const refreshToken = await issueRefreshToken(user);
+
+  return { user: toPublicUser(user), accessToken, refreshToken };
+}
+
+export async function verifyOtp(
+  userId: string,
+  otp: string,
+): Promise<{ verified: true }> {
+  const user = await User.findById(userId).select("+otpCode +otpExpiresAt");
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.verified) {
+    return { verified: true };
+  }
+
+  if (isOtpExpired(user.otpExpiresAt)) {
+    throw new Error("OTP has expired. Please request a new one.");
+  }
+
+  if (user.otpCode !== otp) {
+    throw new Error("Invalid OTP code");
+  }
+
+  user.verified = true;
+  // user.otpCode = undefined;
+  // user.otpExpiresAt = undefined;
+  await user.save();
+  await User.updateOne(
+    { _id: user._id },
+    { $unset: { otpCode: "", otpExpiresAt: "" } },
+  );
+  return { verified: true };
+}
+
+export async function resendOtp(userId: string): Promise<void> {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  if (user.verified) {
+    throw new Error("Account is already verified");
+  }
+
+  const otpCode = generateOtp();
+  user.otpCode = otpCode;
+  user.otpExpiresAt = getOtpExpiry();
+  await user.save();
+
+  await publishOtpEmailRequested({
+    email: user.email,
+    username: user.username,
+    otpCode,
+  });
+}
+
+export async function login(input: LoginInput): Promise<AuthResult> {
+  const user = await User.findOne({ email: input.email });
+
+  if (!user) {
+    throw AppError.notFound("Invalid email");
+  }
+  const accessToken = signAccessToken(user);
+  const refreshToken = await issueRefreshToken(user);
+
+  return { user: toPublicUser(user), accessToken, refreshToken };
+}
+
+export async function refresh(
+  refreshTokenValue: string,
+): Promise<{ accessToken: string }> {
+  const stored = await RefreshToken.findOne({
+    token: refreshTokenValue,
+    revoked: false,
+  });
+
+  if (!stored || stored.expiresAt < new Date()) {
+    throw new Error("Invalid or expired refresh token");
+  }
+
+  const user = await User.findById(stored.userId);
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  const accessToken = signAccessToken(user);
+  return { accessToken };
+}
+
+export async function logout(refreshTokenValue: string): Promise<void> {
+  await RefreshToken.updateOne(
+    { token: refreshTokenValue },
+    { $set: { revoked: true } },
+  );
+}
