@@ -3,7 +3,6 @@ services:
   mongodb:
     image: mongo:7
     container_name: mongodb
-    restart: no
     ports:
       - "27017:27017"
     volumes:
@@ -12,14 +11,10 @@ services:
       - chat-network
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   rabbitmq:
     image: rabbitmq:3.13-management
     container_name: rabbitmq
-    restart: no
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -32,18 +27,13 @@ services:
       - chat-network
     healthcheck:
       test: rabbitmq-diagnostics -q ping
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # ─── Microservices ───────────────────────────────
   api-gateway:
     build:
       context: .
-      # NOTE: filename is lowercase 'dockerfile' (not 'Dockerfile')
       dockerfile: apps/api_Getaway/dockerfile
     container_name: api-gateway
-    restart: no
     ports:
       - "3000:3000"
     environment:
@@ -110,7 +100,6 @@ services:
       context: .
       dockerfile: apps/user-service/dockerfile
     container_name: user-service
-    restart: no
     ports:
       - "3003:3003"
     environment:

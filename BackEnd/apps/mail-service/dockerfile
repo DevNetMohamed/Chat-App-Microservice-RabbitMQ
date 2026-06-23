@@ -1,27 +1,12 @@
-# ─────────────────────────────────────────────
-#  mail-service  Dockerfile
-#  Build context: repo root  (docker-compose context: .)
-# ─────────────────────────────────────────────
-FROM node:22-alpine AS build
+
+FROM node:22-bookworm AS build
 
 WORKDIR /workspace
 
-# ── 1. Install ONLY the service's own deps (avoids the broken root package.json)
+COPY package*.json ./
 COPY apps/mail-service/package*.json ./apps/mail-service/
-WORKDIR /workspace/apps/mail-service
-RUN npm install --no-audit --no-fund
-
-# ── 2. Install shared-src deps that are missing from the service package.json
-#       Install into WORKSPACE root so tsc can find them at ../../node_modules
-WORKDIR /workspace
-RUN npm install --no-audit --no-fund \
-    "amqplib@^0.10.4" \
-    "@upstash/redis@^1.38.0" \
-    "@types/amqplib@^0.10.8" \
-    "@types/cors@^2.8.19" \
-    "@types/express@^5.0.6" \
-    "@types/node@^22.0.0" \
-    "typescript@^5.7.0"
+COPY node_modules ./node_modules
+COPY apps/mail-service/node_modules ./apps/mail-service/node_modules
 
 # ── 3. Copy source then build
 COPY src ./src
@@ -31,13 +16,13 @@ WORKDIR /workspace/apps/mail-service
 RUN npm run build
 
 # ─────────────────────────────────────────────
-FROM node:22-alpine AS runtime
+FROM node:22-bookworm AS runtime
 
 WORKDIR /workspace
 
+COPY node_modules ./node_modules
+COPY apps/mail-service/node_modules ./apps/mail-service/node_modules
 COPY --from=build /workspace/dist ./dist
-COPY --from=build /workspace/node_modules ./node_modules
-COPY --from=build /workspace/apps/mail-service/node_modules ./apps/mail-service/node_modules
 
 EXPOSE 3002
 
