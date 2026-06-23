@@ -9,7 +9,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main',
+                git branch: 'master',
                     url: 'https://github.com/DevNetMohamed/Chat-App-Microservice-RabbitMQ.git'
             }
         }
