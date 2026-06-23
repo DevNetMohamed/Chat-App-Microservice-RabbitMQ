@@ -7,13 +7,12 @@ pipeline {
 
     stages {
 
-       stage('Checkout') {
-        steps {
-            git branch: 'master',
-                url: 'https://github.com/DevNetMohamed/Chat-App-Microservice-RabbitMQ',
-                credentialsId: 'github-token'
+        stage('Checkout') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/DevNetMohamed/Chat-App-Microservice-RabbitMQ.git'
+            }
         }
-}
 
         stage('Build Docker Images') {
             steps {
