@@ -43,7 +43,10 @@ services:
       REDIS_URI: ${REDIS_URI}
       REDIS_TOKEN: ${REDIS_TOKEN}
       RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
+      MONGO_URI: mongodb://mongodb:27017/Chat-App
     depends_on:
+      mongodb:                                     
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
@@ -87,6 +90,8 @@ services:
       RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASS: ${EMAIL_PASS}
+      REDIS_URI: ${REDIS_URI}      
+      REDIS_TOKEN: ${REDIS_TOKEN} 
     depends_on:
       mongodb:
         condition: service_healthy
@@ -107,6 +112,8 @@ services:
       MONGO_URI: mongodb://mongodb:27017/Chat-App
       RABBITMQ_URL: amqp://admin:admin123@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET}
+      REDIS_URI: ${REDIS_URI}      
+      REDIS_TOKEN: ${REDIS_TOKEN} 
     depends_on:
       mongodb:
         condition: service_healthy
