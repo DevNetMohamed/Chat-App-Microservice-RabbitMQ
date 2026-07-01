@@ -36,8 +36,6 @@ export async function startOtpEmailSubscriber(): Promise<void> {
         channel.ack(msg as any);
       } catch (err) {
         console.error("[mail-service] Failed to send OTP email:", err);
-        // Don't requeue indefinitely — avoid poison-message loops.
-        // Consider a dead-letter exchange for production use.
         channel.nack(msg as any, false, false);
       }
     },

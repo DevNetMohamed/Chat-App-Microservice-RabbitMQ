@@ -17,13 +17,6 @@ import {
 const router = Router();
 
 router.post(
-  "/register",
-  authRateLimiter,
-  validateBody(registerSchema),
-  authController.register,
-);
-
-router.post(
   "/login",
   authRateLimiter,
   validateBody(loginSchema),
@@ -38,19 +31,6 @@ router.post(
 
 router.post("/logout", authController.logout);
 
-router.post(
-  "/password-reset/request",
-  authRateLimiter,
-  validateBody(requestPasswordResetSchema),
-  authController.requestPasswordReset,
-);
-
-router.post(
-  "/password-reset/confirm",
-  authRateLimiter,
-  validateBody(resetPasswordSchema),
-  authController.resetPassword,
-);
 
 router.post(
   "/verify-otp",

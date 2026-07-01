@@ -3,67 +3,44 @@ import { RefreshToken } from "../models/RefreshToken.js";
 import { generateOtp, getOtpExpiry, isOtpExpired } from "../utils/otp.js";
 import { signAccessToken, issueRefreshToken } from "../utils/tokens.js";
 import { publishOtpEmailRequested } from "../events/otpEmail.publisher.js";
-import { AppError } from "../../../../src/index.js";
-
-interface RegisterInput {
-  email: string;
-  username: string;
-}
+import { redisClient } from "../../../../src/index.js";
 
 interface LoginInput {
   email: string;
 }
 
-interface AuthResult {
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    verified: boolean;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
 
-function toPublicUser(user: IUser) {
-  return {
-    id: user._id.toString(),
-    email: user.email,
-    username: user.username,
-    verified: user.verified,
-  };
-}
+export async function login(input: LoginInput): Promise<{ success: true }> {
+  let user = await User.findOne({ email: input.email });
 
-export async function register(input: RegisterInput): Promise<AuthResult> {
-  const existing = await User.findOne({ email: input.email });
-  if (existing) {
-    throw new Error("An account with this email already exists");
+  if (!user) {
+    user = await User.create({
+      email: input.email,
+      username: input.email.split("@")[0],
+      verified: false,
+    });
   }
 
   const otpCode = generateOtp();
-  const otpExpiresAt = getOtpExpiry();
 
-  const user = await User.create({
-    email: input.email,
-    username: input.username,
+  user.otpCode = otpCode;
+  user.otpExpiresAt = getOtpExpiry();
 
-    verified: false,
-    otpCode,
-    otpExpiresAt,
-  });
+  const redis =  redisClient();
+  await redis.set(`otp:${user._id}`, JSON.stringify({ username: user.email, otpCode }), { EX: 300 });
 
-  // Fire-and-forget — does not block the register response.
+  await user.save();
+
   await publishOtpEmailRequested({
     email: user.email,
     username: user.username,
     otpCode,
   });
 
-  const accessToken = signAccessToken(user);
-  const refreshToken = await issueRefreshToken(user);
-
-  return { user: toPublicUser(user), accessToken, refreshToken };
+  return { success: true };
 }
+
+
 
 export async function verifyOtp(
   userId: string,
@@ -121,17 +98,17 @@ export async function resendOtp(userId: string): Promise<void> {
   });
 }
 
-export async function login(input: LoginInput): Promise<AuthResult> {
-  const user = await User.findOne({ email: input.email });
+// export async function login(input: LoginInput): Promise<AuthResult> {
+//   const user = await User.findOne({ email: input.email });
 
-  if (!user) {
-    throw AppError.notFound("Invalid email");
-  }
-  const accessToken = signAccessToken(user);
-  const refreshToken = await issueRefreshToken(user);
+//   if (!user) {
+//     throw AppError.notFound("Invalid email");
+//   }
+//   const accessToken = signAccessToken(user);
+//   const refreshToken = await issueRefreshToken(user);
 
-  return { user: toPublicUser(user), accessToken, refreshToken };
-}
+//   return { user: toPublicUser(user), accessToken, refreshToken };
+// }
 
 export async function refresh(
   refreshTokenValue: string,

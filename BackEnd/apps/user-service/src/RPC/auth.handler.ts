@@ -56,7 +56,7 @@ export async function startAuthConsumer(): Promise<void> {
 
         switch (action) {
           case "register":
-            result = await authService.register(
+            result = await authService.login(
               data as { email: string;  username: string; },
             );
             break;
