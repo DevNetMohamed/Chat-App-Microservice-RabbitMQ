@@ -4,6 +4,7 @@ import { AppError } from "../../../../src/error/AppError.js";
 import { asyncHandler } from "../../../../src/middleware/asyncHandler.js";
 import type { AuthenticatedUser } from "../types/express.js";
 
+
 interface JwtPayload {
   id: string;
   email: string;
@@ -13,12 +14,12 @@ interface JwtPayload {
 export const isAuth = asyncHandler(
   async (req: Request, _res: Response, next: NextFunction) => {
     const authHeader = req.headers.authorization;
+    const bearerToken =
+      authHeader && authHeader.startsWith("Bearer ")
+        ? authHeader.split(" ")[1]
+        : undefined;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      throw AppError.unauthorized("Authentication token missing");
-    }
-
-    const token = authHeader.split(" ")[1];
+    const token = req.cookies?.accessToken ?? bearerToken;
 
     if (!token) {
       throw AppError.unauthorized("Authentication token missing");

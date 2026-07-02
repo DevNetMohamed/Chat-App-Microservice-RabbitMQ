@@ -1,8 +1,8 @@
-export interface AuthenticatedUser {
-  id: string;
-  email: string;
-  role?: string | undefined;
-}
+export interface AuthenticatedUser  {
+  id: decoded.id,
+  email: decoded.email,
+  role: decoded.role,
+};
 
 declare global {
   namespace Express {

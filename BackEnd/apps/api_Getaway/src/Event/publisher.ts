@@ -18,7 +18,7 @@ export async function publishEvent(
   options: PublishEventOptions,
 ): Promise<PublishedEvent> {
   const { exchange, routingKey, payload, socketId } = options;
-
+  console.log("Publishing:", exchange, routingKey, payload, socketId);
   const channel: Channel = await getChannel();
   await channel.assertExchange(exchange, "topic", { durable: true });
 

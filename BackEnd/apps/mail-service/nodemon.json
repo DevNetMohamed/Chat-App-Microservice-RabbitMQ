@@ -2,5 +2,5 @@
   "watch": ["../../dist/apps/mail-service"],
   "ext": "js,json",
   "ignore": ["**/*.map"],
-  "exec": "node ../../dist/apps/mail-service/index.js"
+  "exec": "node -r dotenv/config ../../dist/apps/mail-service/index.js dotenv_config_path=../../.env"
 }

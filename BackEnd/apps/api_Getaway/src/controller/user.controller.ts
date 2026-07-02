@@ -6,17 +6,16 @@ import { publishEvent } from "../Event/publisher.js";
 const USER_EVENTS_EXCHANGE = "user.events";
 
 export const getMe = asyncHandler(async (req: Request, res: Response) => {
-  if (!req.user || !req.socketId) {
+  if (!req.user?.id || !req.socketId) {
     throw AppError.unauthorized("Not authenticated");
   }
 
   const { correlationId } = await publishEvent({
     exchange: USER_EVENTS_EXCHANGE,
     routingKey: "user.profile.get.requested",
-    payload: { id: req.user.id },
+    payload: { email: req.user.email },
     socketId: req.socketId,
   });
-
   res.status(202).json({
     success: true,
     message:
@@ -31,6 +30,7 @@ export const getUserById = asyncHandler(async (req: Request, res: Response) => {
   }
 
   const { id } = req.params;
+    console.log(req.params);
 
   const { correlationId } = await publishEvent({
     exchange: USER_EVENTS_EXCHANGE,
@@ -78,7 +78,7 @@ export const updateProfile = asyncHandler(
     const { correlationId } = await publishEvent({
       exchange: USER_EVENTS_EXCHANGE,
       routingKey: "user.profile.update.requested",
-      payload: { id: req.user.id, updates: req.body },
+      payload: { email: req.user.email, updates: req.body },
       socketId: req.socketId,
     });
 

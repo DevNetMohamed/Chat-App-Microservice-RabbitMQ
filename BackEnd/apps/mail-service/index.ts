@@ -1,12 +1,3 @@
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
-
 import { connectMongoDB } from "../../src/database/connectionDB.js";
 import { connectRabbitMQ } from "../../src/RabbitMQ/connections.js";
 import { startOtpEmailSubscriber } from "./src/events/otpEmail.subscriber.js";

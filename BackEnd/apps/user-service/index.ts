@@ -13,6 +13,7 @@ import { startAuthConsumer } from "./src/RPC/auth.handler.js";
 import { redisClient } from "../../src/index.js";
 
 import app from "./app.js";
+import { startUserConsumer } from "./src/events/Consumer.js";
 
 async function bootstrap() {
   try {
@@ -22,6 +23,8 @@ async function bootstrap() {
     const redis = redisClient();
     await redis.set("Service", "user_service");
     await startAuthConsumer();
+    await startUserConsumer();
+   
 
     app.listen(PORT.SERVICES_PORTS.USER_SERVICE, () => {
       console.log(

@@ -6,7 +6,6 @@ const AUTH_QUEUE = "user-service.auth";
 
 interface RpcRequestBody {
   action:
-    | "register"
     | "login"
     | "verifyOtp"
     | "resendOtp"
@@ -55,12 +54,7 @@ export async function startAuthConsumer(): Promise<void> {
         let result: unknown;
 
         switch (action) {
-          case "register":
-            result = await authService.login(
-              data as { email: string;  username: string; },
-            );
-            break;
-
+      
           case "login":
             result = await authService.login(
               data as { email: string; },
@@ -69,7 +63,7 @@ export async function startAuthConsumer(): Promise<void> {
 
           case "verifyOtp":
             result = await authService.verifyOtp(
-              data.userId as string,
+              data.email as string,
               data.otp as string,
             );
             break;

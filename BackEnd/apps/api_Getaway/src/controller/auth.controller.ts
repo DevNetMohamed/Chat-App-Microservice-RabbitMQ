@@ -9,9 +9,12 @@ interface AuthResponse {
     id: string;
     email: string;
   };
+  verified: boolean;
   accessToken: string;
   refreshToken: string;
 }
+
+
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
   await rpcRequest<AuthResponse>({
@@ -19,14 +22,30 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     payload: { action: "login", data: req.body },
   });
   res.status(200).json({ success: true, message: "OTP sent successfully."});
-});
+}); 
 
 
 export const verifyOtp = asyncHandler(async (req: Request, res: Response) => {
-  const result = await rpcRequest<{ verified: boolean }>({
+  const result = await rpcRequest<AuthResponse>({
     queue: USER_SERVICE_AUTH_QUEUE,
     payload: { action: "verifyOtp", data: req.body },
   });
+
+  res.cookie("accessToken", result.accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge:  15 * 60 * 1000,
+  });
+
+  res.cookie("refreshToken", result.refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    path: "/api/auth/refresh"
+  })
+
 
   res.status(200).json({ success: true, data: result });
 });

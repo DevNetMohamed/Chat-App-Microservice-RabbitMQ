@@ -2,11 +2,10 @@ import { Router } from "express";
 import * as authController from "../controller/auth.controller.js";
 import { validateBody } from "../middleware/validateRequest.js";
 import {
-  registerSchema,
+
   loginSchema,
   refreshTokenSchema,
-  requestPasswordResetSchema,
-  resetPasswordSchema,
+
 } from "../validators/auth.validator.js";
 import { authRateLimiter } from "../middleware/rateLimiter.js";
 import {

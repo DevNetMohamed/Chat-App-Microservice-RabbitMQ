@@ -45,9 +45,10 @@ export async function startResultConsumer(): Promise<void> {
         try {
           const envelope = JSON.parse(msg.content.toString()) as ResultEnvelope;
           const { correlationId, routingKey, payload } = envelope;
-
+          console.log("Envelope:", envelope);
+          console.log("Correlation:", correlationId);
           const socketId = await resolveCorrelation(correlationId);
-
+          console.log("Socket ID:", socketId);
           if (!socketId) {
             // No one is listening anymore (client disconnected, or
             // the entry expired). Nothing to do but ack and move on.
@@ -57,9 +58,11 @@ export async function startResultConsumer(): Promise<void> {
 
           const io = getIO();
           io.to(socketId).emit(routingKey, payload);
-
+          console.log("Publishing:", exchange, routingKey, payload);
           await clearCorrelation(correlationId);
           channel.ack(msg);
+          console.log(msg);
+          
         } catch (err) {
           console.error("[api_Getaway] Failed to process result event:", err);
           // Reject without requeue to avoid poison-message loops.
@@ -68,6 +71,7 @@ export async function startResultConsumer(): Promise<void> {
       },
       { noAck: false },
     );
+
     console.log(`[api_Getaway] Listening for result events on "${exchange}"`);
   }
 }
